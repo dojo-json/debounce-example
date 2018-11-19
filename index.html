@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/rxjs/6.3.3/rxjs.umd.js"></script>
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css">
+  <title>Search</title>
+</head>
+<body >
+  <main class='container'>
+    <section class='row'>
+      <div class="col">
+          <h1>Search</h1>
+      </div>
+    </section>
+    <section class="search row">
+      <div class="form-group">
+        <input type="text" name='search' id='search' class='form-control' autocomplete="off">
+      </div>
+    </section>
+
+    <section class="output row">
+      <div class="col-6" id='debounced'>
+        <h3>Debounced</h3>
+      </div>
+      <div class="col-6" id='unfiltered'>
+        <h3>Unfiltered</h3>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const { map, debounceTime, filter, distinctUntilChanged } = rxjs.operators;
+    const { fromEvent } = rxjs;
+
+    const element = document.getElementById('search');
+
+    // create observable from input elements keyup event
+    const input$ = fromEvent(element, 'keyup')
+      .pipe(
+        // grab current value from input element and trim
+        map(event => event.currentTarget.value.trim()),
+        // filter empty string
+        filter(content => content)
+      );
+
+    // send all key strokes to Unfiltered section
+    const unfiltered = input$.subscribe(value => contentFor('unfiltered', value));
+
+    // send debounced content to Debounced section
+    const debounced = input$.pipe(
+                        // debounceTime will ignore content based on time
+                        // raise or lower accordingly
+                        debounceTime(500),
+                        // reject 'new' values that are the same as the last value 
+                        // (e.g. type some characters then backspace to have the same input)
+                        distinctUntilChanged()
+                      )
+                        .subscribe(value => contentFor('debounced', value));
+
+
+    function contentFor(target, content) {
+      const element = document.getElementById(target);
+      element.innerHTML += `<p>${content}</p>`;
+    }
+  </script>
+</body>
+</html>
